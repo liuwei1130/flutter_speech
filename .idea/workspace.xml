@@ -41,13 +41,13 @@
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
-          <entry key="dart" value="1595" />
+          <entry key="dart" value="1612" />
           <entry key="m" value="14" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="Dart" value="1595" />
+          <entry key="Dart" value="1612" />
           <entry key="ObjectiveC" value="14" />
         </counts>
       </usages-collector>
@@ -58,8 +58,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/lib/speech.dart">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="485">
-              <caret line="81" column="75" selection-start-line="81" selection-start-column="71" selection-end-line="81" selection-end-column="76" />
+            <state relative-caret-position="260">
+              <caret line="66" column="20" selection-start-line="66" selection-start-column="12" selection-end-line="66" selection-end-column="21" />
               <folding>
                 <element signature="e#0#20#0" expanded="true" />
               </folding>
@@ -117,6 +117,9 @@
       </file>
     </leaf>
   </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
@@ -125,11 +128,12 @@
       </list>
     </option>
   </component>
-  <component name="ProjectFrameBounds" extendedState="6">
+  <component name="ProjectFrameBounds">
     <option name="y" value="23" />
     <option name="width" value="1280" />
     <option name="height" value="706" />
   </component>
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectView">
     <navigator currentView="ProjectPane" proportions="" version="1">
       <foldersAlwaysOnTop value="true" />
@@ -188,7 +192,7 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="23" width="1280" height="706" extended-state="6" />
+    <frame x="0" y="23" width="1280" height="706" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.24959612" />
@@ -224,8 +228,8 @@
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/lib/speech.dart">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="485">
-          <caret line="81" column="75" selection-start-line="81" selection-start-column="71" selection-end-line="81" selection-end-column="76" />
+        <state relative-caret-position="260">
+          <caret line="66" column="20" selection-start-line="66" selection-start-column="12" selection-end-line="66" selection-end-column="21" />
           <folding>
             <element signature="e#0#20#0" expanded="true" />
           </folding>

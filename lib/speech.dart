@@ -50,24 +50,24 @@ class Speech {
   void setErrorCallback(VoidCallback callback) => _errorCallback = callback;
 
   Future _platformCallHandler(MethodCall call) async {
-    print("_platformCallHandler call ${call.method} ${call.arguments}");
+    print('_platformCallHandler call ${call.method} ${call.arguments}');
     switch (call.method) {
-      case "speech.onSpeechAvailability":
+      case 'speech.onSpeechAvailability':
         _availabilityCallback(call.arguments);
         break;
-      case "speech.onSpeech":
+      case 'speech.onSpeech':
         _recognitionResultCallback(call.arguments);
         break;
-      case "speech.onRecognitionStarted":
+      case 'speech.onRecognitionStarted':
         _recognitionStartedCallback();
         break;
-      case "speech.onRecognitionComplete":
+      case 'speech.onRecognitionComplete':
         _recognitionCompleteCallback(call.arguments);
         break;
-      case "speech.db":
+      case 'speech.db':
         _recognitionDbCallback(call.arguments);
         break;
-      case "speech.onError":
+      case 'speech.onError':
         _errorCallback();
         break;
       default:
