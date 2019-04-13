@@ -56,16 +56,22 @@ class Speech {
         _availabilityCallback(call.arguments);
         break;
       case 'speech.onSpeech':
-        _recognitionResultCallback(call.arguments);
+        if (_recognitionResultCallback != null) {
+          _recognitionResultCallback(call.arguments as String);
+        }
         break;
       case 'speech.onRecognitionStarted':
         _recognitionStartedCallback();
         break;
       case 'speech.onRecognitionComplete':
-        _recognitionCompleteCallback(call.arguments);
+        if (_recognitionCompleteCallback != null) {
+          _recognitionCompleteCallback(call.arguments);
+        }
         break;
       case 'speech.db':
-        _recognitionDbCallback(call.arguments);
+        if (_recognitionDbCallback != null) {
+          _recognitionDbCallback(call.arguments);
+        }
         break;
       case 'speech.onError':
         _errorCallback();

@@ -81,33 +81,37 @@
 }
 
 - (void)cancelRecognition:(FlutterResult)result {
+  NSLog(@"cancelRecognition...");
   if (_speechRecognitionTask) {
     [_speechRecognitionTask cancel];
     _speechRecognitionTask = nil;
-    [self recorderSoundEnd];
     if (result) {
       result(@(NO));
     }
   }
+
+    [self recorderSoundEnd];
 }
 
 - (void)stopRecognition:(FlutterResult)result {
+  NSLog(@"stopRecognition...");
   if (_audioEngine.isRunning) {
     [_audioEngine stop];
-    [self recorderSoundEnd];
     if (_speechAudioBufferRecognitionRequest) {
       [_speechAudioBufferRecognitionRequest endAudio];
     }
   }
+  [self recorderSoundEnd];
   result(@(NO));
 }
 
 - (void)start:(NSString *)local {
 
   [self cancelRecognition:nil];
+
   AVAudioSession *audioSession = [AVAudioSession sharedInstance];
   @try {
-    [audioSession setCategory:AVAudioSessionCategoryRecord
+    [audioSession setCategory:AVAudioSessionCategoryPlayAndRecord
                          mode:AVAudioSessionModeMeasurement
                       options:AVAudioSessionCategoryOptionDuckOthers error:nil];
     [audioSession setActive:YES
@@ -146,17 +150,15 @@
 
                            }
                          }
-                         if (error || isFinal) {
-                           [_audioEngine stop];
-                           [inputNode removeTapOnBus:0];
-                           _speechAudioBufferRecognitionRequest = nil;
-                           _speechRecognitionTask = nil;
-                           [self recorderSoundEnd];
+                         if (error) {
+                             [_channel invokeMethod:@"speech.onError" arguments:nil];
                          }
 
                        }];
 
   AVAudioFormat *recordingFormat = [inputNode outputFormatForBus:0];
+
+  [inputNode removeTapOnBus:0];
   [inputNode installTapOnBus:0 bufferSize:1024 format:recordingFormat block:^(AVAudioPCMBuffer *_Nonnull
   buffer, AVAudioTime *_Nonnull when) {
     [_speechAudioBufferRecognitionRequest appendAudioPCMBuffer:buffer];
@@ -165,7 +167,9 @@
   [_audioEngine prepare];
   @try {
     [_audioEngine startAndReturnError:nil];
+
     [self recorderSoundStart];
+
   } @catch (NSException *exception) {
     NSLog(@"%@", exception);
   }
@@ -190,8 +194,9 @@
       [[AVAudioRecorder alloc] initWithURL:[NSURL fileURLWithPath:@"/dev/null"]
                                   settings:[self getAudioSetting] error:&errorRecord];
   _recorder.meteringEnabled = YES; //如果要监控声波则必须设置为YES
-  // 准备录音
-  [_recorder prepareToRecord];
+
+    // 准备录音
+    [_recorder prepareToRecord];
 }
 
 - (void)recorderSoundStart {
@@ -200,11 +205,8 @@
     [_recorder stop];
   }
 
-  if (!_recorder) {
-
     // 实例化录音对象
     [self createAudioRecorder];
-  }
 
   if (![_recorder isRecording]) {
 
@@ -212,6 +214,7 @@
 
     _levelTimer = [NSTimer scheduledTimerWithTimeInterval:0.5 target:self selector:@selector
     (levelTimerCallback:)                        userInfo:nil repeats:YES];
+
   }
 }
 
@@ -219,7 +222,10 @@
   // 停止录音
   if ([_recorder isRecording]) {
     [_recorder stop];
+  }
+  if (_levelTimer) {
     [_levelTimer invalidate];
+    _levelTimer = nil;
   }
 }
 
@@ -250,28 +256,12 @@
 }
 
 - (NSDictionary *)getAudioSetting {
-  //录音设置
-  NSMutableDictionary *recordSettings = [[NSMutableDictionary alloc] init];
-
-  //音频质量,采样质量
-  [recordSettings setValue:[NSNumber numberWithInt:AVAudioQualityMax] forKey:AVEncoderAudioQualityKey];
-
-  //通道数 编码时每个通道的比特率
-  [recordSettings setValue:[NSNumber numberWithInt:2] forKey:AVNumberOfChannelsKey];
-
-  //录音格式 无法使用
-  //    [recordSettings setValue:[NSNumber numberWithInt:kAudioFormatLinearPCM] forKey: AVFormatIDKey];
-  //LinearPCM 是iOS的一种无损编码格式,但是体积较为庞大
-
-  //采样率
-  [recordSettings setValue:[NSNumber numberWithFloat:44100.0] forKey:AVSampleRateKey];//44100.0
-  //线性采样位数
-  [recordSettings setValue:[NSNumber numberWithInt:32] forKey:AVLinearPCMBitDepthKey];
-
-  // 编码时的比特率，是每秒传送的比特(bit)数单位为bps(Bit Per Second)，比特率越高传送数据速度越快值是一个整数
-  [recordSettings setValue:[NSNumber numberWithInt:128000] forKey:AVEncoderBitRateKey];
-
-  return recordSettings;
+  return [NSDictionary dictionaryWithObjectsAndKeys:
+                  [NSNumber numberWithFloat: 44100.0], AVSampleRateKey,
+                  [NSNumber numberWithInt: kAudioFormatAppleLossless], AVFormatIDKey,
+                  [NSNumber numberWithInt: 2], AVNumberOfChannelsKey,
+                  [NSNumber numberWithInt: AVAudioQualityMax], AVEncoderAudioQualityKey,
+                  nil];
 }
 
 #pragma mark - SFSpeechRecognizerDelegate
