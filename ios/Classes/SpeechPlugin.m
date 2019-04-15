@@ -91,6 +91,15 @@
   }
 
     [self recorderSoundEnd];
+    AVAudioSession *session = [AVAudioSession sharedInstance];
+    NSError * error = nil;
+    [session setCategory:AVAudioSessionCategoryAmbient withOptions:AVAudioSessionCategoryOptionDuckOthers error:&error];
+    if (error) {
+        NSLog(@"%@",error);
+    }
+    [session setActive:YES withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:nil];
+
+    [session setActive:NO withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:nil];
 }
 
 - (void)stopRecognition:(FlutterResult)result {
