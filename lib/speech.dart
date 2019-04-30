@@ -84,6 +84,11 @@ class Speech {
   /// 访问权限
   Future<bool> activate() => _channel.invokeMethod('speech.activate');
 
+  /// 开启权限设置
+  Future<void> toOpenAccess() {
+    return _channel.invokeMethod('toOpenPermission');
+  }
+
   /// start
   Future<bool> start({String locale}) => _channel.invokeMethod('speech.start', locale);
 

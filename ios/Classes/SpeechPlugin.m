@@ -39,7 +39,9 @@
 - (void)handleMethodCall:(FlutterMethodCall *)call result:(FlutterResult)result {
   if ([@"getPlatformVersion" isEqualToString:call.method]) {
     result([@"iOS " stringByAppendingString:[[UIDevice currentDevice] systemVersion]]);
-  } else if ([@"speech.activate" isEqualToString:call.method]) {
+  } else if ([@"toOpenPermission" isEqualToString:call.method]) {
+      [[UIApplication sharedApplication] openURL:[NSURL URLWithString:UIApplicationOpenSettingsURLString]];
+  }  else if ([@"speech.activate" isEqualToString:call.method]) {
     [self activateRecognition:result];
   } else if ([@"speech.start" isEqualToString:call.method]) {
     [self startRecognition:call.arguments :result];
@@ -54,9 +56,36 @@
 
 // 请求权限
 - (void)activateRecognition:(FlutterResult)result {
-  [SFSpeechRecognizer requestAuthorization:^(SFSpeechRecognizerAuthorizationStatus status) {
-    result([NSNumber numberWithBool:status == SFSpeechRecognizerAuthorizationStatusAuthorized]);
-  }];
+    SFSpeechRecognizerAuthorizationStatus status = [SFSpeechRecognizer authorizationStatus];
+    if (status == SFSpeechRecognizerAuthorizationStatusRestricted || status == SFSpeechRecognizerAuthorizationStatusDenied) {
+        result([NSNumber numberWithBool:NO]);
+    } else if (status == SFSpeechRecognizerAuthorizationStatusAuthorized) {
+        [self activateAuthorization:result];
+    } else {
+        [SFSpeechRecognizer requestAuthorization:^(SFSpeechRecognizerAuthorizationStatus status) {
+            if (status == SFSpeechRecognizerAuthorizationStatusAuthorized) {
+                 [self activateAuthorization:result];
+            } else{
+            result(nil);
+            }
+        }];
+    }
+}
+
+// 申请麦克风权限 
+- (void)activateAuthorization:(FlutterResult)result {
+    AVAuthorizationStatus status = [AVCaptureDevice authorizationStatusForMediaType:AVMediaTypeAudio];
+    if (status == AVAuthorizationStatusRestricted || status == AVAuthorizationStatusDenied) {
+        result([NSNumber numberWithBool:NO]);
+    } else if (status == AVAuthorizationStatusAuthorized) {
+        result([NSNumber numberWithBool:YES]);
+    } else {
+        [AVCaptureDevice requestAccessForMediaType:AVMediaTypeVideo completionHandler:^(BOOL granted) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                result(granted ? [NSNumber numberWithBool:YES] : nil);
+            });
+        }];
+    }
 }
 
 - (void)startRecognition:(NSString *)local :(FlutterResult)result {
