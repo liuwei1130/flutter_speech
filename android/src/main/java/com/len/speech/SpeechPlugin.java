@@ -2,22 +2,20 @@ package com.len.speech;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.AlertDialog;
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
-import android.speech.SpeechRecognizer;
 import android.text.TextUtils;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.PermissionChecker;
 
 import java.util.ArrayList;
-import java.util.Locale;
+import java.util.List;
 
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
@@ -45,6 +43,8 @@ public class SpeechPlugin implements MethodCallHandler, PluginRegistry.ActivityR
     private Result mResult;
 
     private String mSendResult;
+
+//    private PermissionPageUtils mPageUtils;
 
     public void setChannel(MethodChannel channel) {
         this.mChannel = channel;
@@ -80,31 +80,22 @@ public class SpeechPlugin implements MethodCallHandler, PluginRegistry.ActivityR
                 result.success("Android " + android.os.Build.VERSION.RELEASE);
                 break;
             case "speech.activate":
-                Log.d(TAG, "onMethodCall: speech.activate");
                 requestPermissions(mRegistrar.activity(), result);
                 break;
             case "speech.start":
-                Log.d(TAG, "onMethodCall: speech.start");
-
-                if (PermissionChecker.checkCallingOrSelfPermission(mRegistrar.activeContext(),
-                                                                   Manifest.permission.RECORD_AUDIO) == PermissionChecker.PERMISSION_GRANTED) {
-                    Log.d(TAG, "取得权限");
+                if (mSpeechRecognizer.init(mRegistrar.activity().getApplicationContext(), this)) {
+                    String language = call.arguments.toString();
+                    mSpeechRecognizer.setLanguage(language);
+                    mSpeechRecognizer.startListening();
                 } else {
-                    Log.d(TAG, "没有权限");
-                }
 
-                mSpeechRecognizer.init(mRegistrar.activeContext(), this);
-                String language = call.arguments.toString();
-                mSpeechRecognizer.setLanguage(language);
-                mSpeechRecognizer.startListening();
+                }
                 break;
             case "speech.cancel":
-                Log.d(TAG, "onMethodCall: speech.cancel");
                 mSpeechRecognizer.cancel();
                 mSpeechRecognizer.destroy();
                 break;
             case "speech.stop":
-                Log.d(TAG, "onMethodCall: speech.stop");
                 mSpeechRecognizer.stopListening();
                 break;
             default:
@@ -115,7 +106,9 @@ public class SpeechPlugin implements MethodCallHandler, PluginRegistry.ActivityR
 
     @Override
     public void startListening() {
-        Log.d(TAG, "startListening: ");
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "startListening: ");
+        }
         // 语音识别开始
         mChannel.invokeMethod("speech.onRecognitionStarted", null);
     }
@@ -131,13 +124,17 @@ public class SpeechPlugin implements MethodCallHandler, PluginRegistry.ActivityR
         }
         // 语音识别分贝值变化
         mChannel.invokeMethod("speech.db", rmsdb * 0.1);
-        Log.d(TAG, "onRmsChanged: " + rmsdb * 0.1);
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onRmsChanged: " + rmsdb * 0.1);
+        }
     }
 
     @Override
     public void onEndOfSpeech() {
         // 语音识别结束
-        Log.d(TAG, "onEndOfSpeech: ");
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onEndOfSpeech: ");
+        }
         mSpeechRecognizer.stopListening();
     }
 
@@ -150,7 +147,9 @@ public class SpeechPlugin implements MethodCallHandler, PluginRegistry.ActivityR
 
     @Override
     public void onResults(ArrayList<String> listenResult) {
-        Log.d(TAG, "onResults: " + listenResult);
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onResults: " + listenResult);
+        }
         // 语音识别结果
         String result = "";
         if (listenResult.size() > 0) {
@@ -169,22 +168,24 @@ public class SpeechPlugin implements MethodCallHandler, PluginRegistry.ActivityR
 
     @Override
     public boolean onActivityResult(int requestCode, int resultCode, Intent data) {
-        Log.d(TAG, "onActivityResult: ");
         return false;
     }
 
     @Override
     public boolean onRequestPermissionsResult(int requestCode, String[] permission, int[] grantResults) {
-        Log.d(TAG, "onMethodCall: onRequestPermissionsResult");
         if (requestCode == PERMISSION_REQ_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 //用户同意，执行操作
-                Log.d(TAG, "onRequestPermissionsResult: grant");
+                if (BuildConfig.DEBUG) {
+                    Log.d(TAG, "onRequestPermissionsResult: grant");
+                }
                 mResult.success(true);
             } else {
                 //用户不同意，向用户展示该权限作用
-                Log.d(TAG, "onRequestPermissionsResult: define");
-                mResult.success(null);
+                if (BuildConfig.DEBUG) {
+                    Log.d(TAG, "onRequestPermissionsResult: define");
+                }
+                mResult.success(false);
             }
         }
         return false;
@@ -196,25 +197,21 @@ public class SpeechPlugin implements MethodCallHandler, PluginRegistry.ActivityR
      * @param activity
      */
     private void requestPermissions(Activity activity, Result result) {
-        Log.d(TAG, "onMethodCall: requestPermissions");
-
         if (ContextCompat.checkSelfPermission(activity, Manifest.permission.RECORD_AUDIO)
                 == PackageManager.PERMISSION_GRANTED) {
-            Log.d(TAG, "onMethodCall: permission has granted");
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "onMethodCall: permission has granted");
+            }
             result.success(true);
             return;
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (ContextCompat.checkSelfPermission(activity, Manifest.permission.RECORD_AUDIO)
-                    == PackageManager.PERMISSION_GRANTED) {
-                Log.d(TAG, "onMethodCall: permission has granted");
-                result.success(true);
-            } else {
+            if (BuildConfig.DEBUG) {
                 Log.d(TAG, "onMethodCall: start request permission");
-                String[] permissions = new String[]{Manifest.permission.RECORD_AUDIO};
-                ActivityCompat.requestPermissions(activity, permissions, PERMISSION_REQ_CODE);
             }
+            String[] permissions = new String[]{Manifest.permission.RECORD_AUDIO};
+            ActivityCompat.requestPermissions(activity, permissions, PERMISSION_REQ_CODE);
         } else {
             result.success(true);
         }
