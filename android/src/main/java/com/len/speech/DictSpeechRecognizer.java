@@ -1,27 +1,28 @@
 package com.len.speech;
 
-import android.Manifest;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.os.Build;
+import android.content.pm.ResolveInfo;
 import android.os.Bundle;
-import android.os.Looper;
+import android.provider.Settings;
 import android.speech.RecognitionListener;
+import android.speech.RecognitionService;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+import android.text.TextUtils;
 import android.util.Log;
-
-import androidx.core.content.PermissionChecker;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
-import java.util.Map;
+
+import static android.content.pm.PackageManager.MATCH_ALL;
+import static com.len.speech.SpeechPlugin.debugLog;
 
 public class DictSpeechRecognizer implements RecognitionListener {
 
@@ -33,24 +34,89 @@ public class DictSpeechRecognizer implements RecognitionListener {
 
     private Intent mRecognitionIntent;
 
-    public void init(Context context, DictSpeechListener dictSpeechListener) {
-        this.mDictSpeechListener = dictSpeechListener;
-        if (mSpeechRecognizer == null) {
-            mSpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(context);
-            Log.d(TAG, "isRecognitionAvailable: " + SpeechRecognizer.isRecognitionAvailable(context));
-            mSpeechRecognizer.setRecognitionListener(this);
+    /**
+     * @param context            上下文
+     * @param dictSpeechListener 语音识别监听
+     * @return 是否初始化成功
+     */
+    public boolean init(Context context, DictSpeechListener dictSpeechListener) {
+
+        // 查找当前系统的使用的语音识别服务
+        // com.huawei.vassistant/com.huawei.ziri.service.FakeRecognitionService
+        String serviceComponent = Settings.Secure.getString(context.getContentResolver(),
+                                                            "voice_recognition_service");
+
+        debugLog(TAG, "voice_recognition_service : " + serviceComponent);
+
+        if (TextUtils.isEmpty(serviceComponent)) {
+            return false;
         }
+
+        // 当前系统使用的语音识别服务
+        ComponentName component = ComponentName.unflattenFromString(serviceComponent);
+
+        if (component == null) {
+            debugLog(TAG, "voice_recognition_service component == null");
+            return false;
+        }
+
+        debugLog(TAG, "serviceComponent : " + component.toShortString());
+
+        boolean isRecognizerServiceValid = false;
+        ComponentName currentRecognitionCmp = null;
+
+        // 查找得到的 "可用的" 语音识别服务
+        List<ResolveInfo> list = context.getPackageManager().queryIntentServices(new Intent(RecognitionService.SERVICE_INTERFACE), MATCH_ALL);
+        if (list != null && list.size() != 0) {
+            for (ResolveInfo info : list) {
+                debugLog(TAG, "\t" + info.loadLabel(context.getPackageManager()) + ": "
+                        + info.serviceInfo.packageName + "/" + info.serviceInfo.name);
+
+                if (info.serviceInfo.packageName.equals(component.getPackageName())) {
+                    isRecognizerServiceValid = true;
+                    break;
+                } else {
+                    currentRecognitionCmp = new ComponentName(info.serviceInfo.packageName, info.serviceInfo.name);
+                }
+
+            }
+        } else {
+            debugLog(TAG, "No recognition services installed");
+            return false;
+        }
+
+        this.mDictSpeechListener = dictSpeechListener;
+
+        if (mSpeechRecognizer != null) {
+            return true;
+        }
+
+        debugLog(TAG, "isRecognitionAvailable: " + SpeechRecognizer.isRecognitionAvailable(context));
+
+        // 当前系统有 语音识别服务
+        if (isRecognizerServiceValid) {
+            mSpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(context);
+        } else {
+            mSpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(context, currentRecognitionCmp);
+        }
+
+        mSpeechRecognizer.setRecognitionListener(this);
 
         if (mRecognitionIntent == null) {
             mRecognitionIntent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
             mRecognitionIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
             mRecognitionIntent.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true);
             mRecognitionIntent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3);
-//            mRecognitionIntent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, context.getPackageName());
         }
+        return true;
     }
 
     void setLanguage(String language) {
+
+        if (mRecognitionIntent == null) {
+            return;
+        }
+
         // 中文 zh-CN 英语en_US
         // 语音种类
         Locale mLocale;
@@ -60,12 +126,14 @@ public class DictSpeechRecognizer implements RecognitionListener {
             mLocale = Locale.US;
         }
         mRecognitionIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, mLocale);
-//        mRecognitionIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
         Log.d(TAG, "language: " + mLocale.toString());
     }
 
     void startListening() {
-        mSpeechRecognizer.startListening(mRecognitionIntent);
+        if (mSpeechRecognizer != null) {
+            mSpeechRecognizer.startListening(mRecognitionIntent);
+        }
+
     }
 
     void stopListening() {
@@ -81,25 +149,28 @@ public class DictSpeechRecognizer implements RecognitionListener {
     }
 
     public void destroy() {
-        Log.d(TAG, "destroy: ");
-        stopListening();
-        cancel();
+
+        debugLog(TAG, "destroy: ");
+
         if (mSpeechRecognizer != null) {
+            stopListening();
+            cancel();
             mSpeechRecognizer.setRecognitionListener(null);
             mSpeechRecognizer.destroy();
             mSpeechRecognizer = null;
+
         }
     }
 
     @Override
     public void onReadyForSpeech(Bundle params) {
-        Log.d(TAG, "onReadyForSpeech: ");
+        debugLog(TAG, "onReadyForSpeech: ");
         mDictSpeechListener.startListening();
     }
 
     @Override
     public void onBeginningOfSpeech() {
-        Log.d(TAG, "onBeginningOfSpeech: ");
+        debugLog(TAG, "onBeginningOfSpeech: ");
     }
 
     @Override
@@ -109,7 +180,7 @@ public class DictSpeechRecognizer implements RecognitionListener {
 
     @Override
     public void onBufferReceived(byte[] buffer) {
-        Log.d(TAG, "onBufferReceived: ");
+
     }
 
     @Override
@@ -119,7 +190,8 @@ public class DictSpeechRecognizer implements RecognitionListener {
 
     @Override
     public void onError(int error) {
-        Log.d(TAG, "onError: " + error);
+        debugLog(TAG, "onError: " + error);
+        System.out.println("onError: " + error);
     }
 
     @Override
@@ -142,13 +214,13 @@ public class DictSpeechRecognizer implements RecognitionListener {
         }
 
         try {
-            Log.d(TAG, "onPartialResults: " + value.toString());
+            debugLog(TAG, "onPartialResults: " + value.toString());
             // onPartialResults 结果可能是 json array 形式
             if (value.toString().startsWith("[")) {
                 JSONArray array = new JSONArray(value.toString());
-                Log.d(TAG, "array: " + array.toString());
+                debugLog(TAG, "array: " + array.toString());
                 if (array.length() > 0) {
-                    Log.d(TAG, "send: " + array.get(0).toString());
+                    debugLog(TAG, "send: " + array.get(0).toString());
                     mDictSpeechListener.onPartsResult(array.get(0).toString());
                 }
                 return;
@@ -160,15 +232,17 @@ public class DictSpeechRecognizer implements RecognitionListener {
                 mDictSpeechListener.onPartsResult(result);
             }
         } catch (JSONException e) {
-            e.printStackTrace();
+            if (BuildConfig.DEBUG) {
+                e.printStackTrace();
+            }
             mDictSpeechListener.onPartsResult("");
         }
     }
 
     @Override
     public void onEvent(int eventType, Bundle params) {
-        Log.d(TAG, "onEvent: eventType ---- " + eventType);
-        Log.d(TAG, "onEvent: Bundle ---- " + params.toString());
+        debugLog(TAG, "onEvent: eventType ---- " + eventType);
+        debugLog(TAG, "onEvent: Bundle ---- " + params.toString());
     }
 
     public interface DictSpeechListener {
