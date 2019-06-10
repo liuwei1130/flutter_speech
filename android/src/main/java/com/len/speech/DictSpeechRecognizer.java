@@ -159,7 +159,6 @@ public class DictSpeechRecognizer implements RecognitionListener {
 
     @Override
     public void onBeginningOfSpeech() {
-
     }
 
     @Override

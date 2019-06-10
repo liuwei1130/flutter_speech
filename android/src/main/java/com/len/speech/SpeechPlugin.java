@@ -217,4 +217,10 @@ public class SpeechPlugin implements MethodCallHandler, PluginRegistry.ActivityR
         }
     }
 
+    static void debugLog(String tag, String msg) {
+        if (BuildConfig.DEBUG) {
+            Log.d(tag, msg);
+        }
+    }
+
 }
