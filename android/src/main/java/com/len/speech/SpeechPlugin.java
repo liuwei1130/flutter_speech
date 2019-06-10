@@ -44,8 +44,6 @@ public class SpeechPlugin implements MethodCallHandler, PluginRegistry.ActivityR
 
     private String mSendResult;
 
-//    private PermissionPageUtils mPageUtils;
-
     public void setChannel(MethodChannel channel) {
         this.mChannel = channel;
     }
@@ -87,8 +85,6 @@ public class SpeechPlugin implements MethodCallHandler, PluginRegistry.ActivityR
                     String language = call.arguments.toString();
                     mSpeechRecognizer.setLanguage(language);
                     mSpeechRecognizer.startListening();
-                } else {
-
                 }
                 break;
             case "speech.cancel":
@@ -214,12 +210,6 @@ public class SpeechPlugin implements MethodCallHandler, PluginRegistry.ActivityR
             ActivityCompat.requestPermissions(activity, permissions, PERMISSION_REQ_CODE);
         } else {
             result.success(true);
-        }
-    }
-
-    static void debugLog(String tag, String msg) {
-        if (BuildConfig.DEBUG) {
-            Log.d(tag, msg);
         }
     }
 

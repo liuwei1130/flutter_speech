@@ -119,7 +119,6 @@ public class DictSpeechRecognizer implements RecognitionListener {
             mLocale = Locale.US;
         }
         mRecognitionIntent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, mLocale);
-        Log.d(TAG, "language: " + mLocale.toString());
     }
 
     void startListening() {
