@@ -80,7 +80,7 @@
     } else if (status == AVAuthorizationStatusAuthorized) {
         result([NSNumber numberWithBool:YES]);
     } else {
-        [AVCaptureDevice requestAccessForMediaType:AVMediaTypeVideo completionHandler:^(BOOL granted) {
+        [AVCaptureDevice requestAccessForMediaType:AVMediaTypeAudio completionHandler:^(BOOL granted) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 result(granted ? [NSNumber numberWithBool:YES] : nil);
             });
