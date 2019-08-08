@@ -43,7 +43,7 @@ public class DictSpeechRecognizer implements RecognitionListener {
         // 查找当前系统的使用的语音识别服务
         // com.huawei.vassistant/com.huawei.ziri.service.FakeRecognitionService
         String serviceComponent = Settings.Secure.getString(context.getContentResolver(),
-                                                            "voice_recognition_service");
+                "voice_recognition_service");
 
         if (TextUtils.isEmpty(serviceComponent)) {
             return false;
@@ -128,6 +128,9 @@ public class DictSpeechRecognizer implements RecognitionListener {
     }
 
     void stopListening() {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "stopListening: ");
+        }
         if (mSpeechRecognizer != null) {
             mSpeechRecognizer.stopListening();
         }
@@ -148,6 +151,10 @@ public class DictSpeechRecognizer implements RecognitionListener {
             mSpeechRecognizer.destroy();
             mSpeechRecognizer = null;
 
+        }
+
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onMethodCall: speech.cancel");
         }
     }
 
@@ -180,7 +187,7 @@ public class DictSpeechRecognizer implements RecognitionListener {
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "onError: " + error);
         }
-    }
+}
 
     @Override
     public void onResults(Bundle results) {

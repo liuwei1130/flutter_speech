@@ -88,6 +88,9 @@ public class SpeechPlugin implements MethodCallHandler, PluginRegistry.ActivityR
                 }
                 break;
             case "speech.cancel":
+                if (BuildConfig.DEBUG){
+                    Log.d(TAG, "onMethodCall: speech.cancel");
+                }
                 mSpeechRecognizer.cancel();
                 mSpeechRecognizer.destroy();
                 break;
@@ -153,12 +156,14 @@ public class SpeechPlugin implements MethodCallHandler, PluginRegistry.ActivityR
         }
         if (!TextUtils.isEmpty(result)) {
             mChannel.invokeMethod("speech.onSpeech", result);
+            mSpeechRecognizer.stopListening();
             return;
         }
 
         if (!TextUtils.isEmpty(mSendResult)) {
             mChannel.invokeMethod("speech.onSpeech", mSendResult);
             mSendResult = "";
+            mSpeechRecognizer.stopListening();
         }
     }
 
