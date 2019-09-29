@@ -2,8 +2,6 @@ package com.len.speech;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.ActivityManager;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
@@ -12,10 +10,9 @@ import android.util.Log;
 
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.core.content.PermissionChecker;
 
 import java.util.ArrayList;
-import java.util.List;
+import java.util.regex.Pattern;
 
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
@@ -31,6 +28,8 @@ public class SpeechPlugin implements MethodCallHandler, PluginRegistry.ActivityR
         PluginRegistry.RequestPermissionsResultListener, DictSpeechRecognizer.DictSpeechListener {
 
     private static final String TAG = "SpeechPlugin";
+
+    private static final String PATTERN_ENGLISH = "[A-Za-z]";
 
     private static final int PERMISSION_REQ_CODE = 1001;
 
@@ -88,7 +87,7 @@ public class SpeechPlugin implements MethodCallHandler, PluginRegistry.ActivityR
                 }
                 break;
             case "speech.cancel":
-                if (BuildConfig.DEBUG){
+                if (BuildConfig.DEBUG) {
                     Log.d(TAG, "onMethodCall: speech.cancel");
                 }
                 mSpeechRecognizer.cancel();
@@ -142,6 +141,9 @@ public class SpeechPlugin implements MethodCallHandler, PluginRegistry.ActivityR
         if (!TextUtils.isEmpty(part)) {
             mSendResult = part;
         }
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onPartsResult: " + mSendResult);
+        }
     }
 
     @Override
@@ -155,16 +157,32 @@ public class SpeechPlugin implements MethodCallHandler, PluginRegistry.ActivityR
             result = listenResult.get(0);
         }
         if (!TextUtils.isEmpty(result)) {
+            result = replaceEndChar(result);
             mChannel.invokeMethod("speech.onSpeech", result);
             mSpeechRecognizer.stopListening();
             return;
         }
 
         if (!TextUtils.isEmpty(mSendResult)) {
+            mSendResult = replaceEndChar(mSendResult);
             mChannel.invokeMethod("speech.onSpeech", mSendResult);
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "onResults: mSendResult " + mSendResult);
+            }
             mSendResult = "";
             mSpeechRecognizer.stopListening();
         }
+    }
+
+    private String replaceEndChar(String target) {
+        Pattern pattern = Pattern.compile(PATTERN_ENGLISH);
+        // 英文结果
+        if (pattern.matcher(target).find()) {
+            if (target.contains("。")) {
+                target = target.replace("。", ".");
+            }
+        }
+        return target;
     }
 
     @Override
